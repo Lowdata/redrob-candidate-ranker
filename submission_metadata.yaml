@@ -1,0 +1,123 @@
+# Redrob Hackathon — Submission Metadata Template
+#
+# Copy this file to your repo root as `submission_metadata.yaml` and fill it in.
+# The fields here should match what you submit via the portal at upload time.
+# Stage 3 review uses this file to verify your portal metadata.
+
+# ============================================================================
+# Team identity
+# ============================================================================
+team_name: "your-team-name-here"  # Used in leaderboard and announcements
+
+primary_contact:
+  name: "Full Name"
+  email: "primary@example.com"   # Used for all organizer communication
+  phone: "+91-XXXXXXXXXX"        # Used for top-50 / top-10 outreach
+
+team_members:
+  - name: "Member 1 Full Name"
+    email: "member1@example.com"
+    role: "ML Engineer"          # Optional, e.g. "Team Lead", "Backend", "Data"
+  - name: "Member 2 Full Name"
+    email: "member2@example.com"
+    role: "Data Engineer"
+  # Add more members as needed; solo participants list just one member
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/YOUR_USERNAME/YOUR_REPO"
+# Required. Must be reachable. Private repos OK if you can grant organizer
+# access at Stage 3 (the email to add will be communicated then).
+
+sandbox_link: "https://huggingface.co/spaces/YOUR_USERNAME/redrob-ranker"
+# Required. A working hosted environment where the ranker can be run on a small
+# candidate sample. See Section 10.5 of submission_spec.md for acceptable
+# platforms (HuggingFace Spaces, Streamlit Cloud, Replit, Colab, Docker, Binder).
+
+reproduce_command: "python rank.py --candidates ./candidates.jsonl.gz --jd ./job_description.md --out ./submission.csv"
+# The single command that produces submission.csv from candidates.jsonl.
+# Verified against the real, full 100,000-candidate pool: ~61s wall-clock,
+# ~1.84GB peak RAM (measured in a Linux container; an earlier local run on
+# the original author's MacBook Air completed the same workload in ~15s —
+# timing varies by machine, both comfortably inside the 5-minute budget).
+# No GPU, no network calls, no external dependencies — pure Python standard
+# library.
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "FILL IN — e.g. MacBook Pro M2"
+  cpu_cores: 8                                  # FILL IN
+  ram_gb: 16                                    # FILL IN
+  python_version: "3.x"                          # FILL IN (python --version)
+  os: "FILL IN"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: false               # no embeddings/model weights used in current approach
+  pre_computation_time_minutes: 0
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+# Transparency only — declared use is NOT penalized. Be honest. Stage 5 interview
+# may verify these declarations against your code; declarations that contradict
+# your code or your interview are flagged.
+ai_tools_used:
+  - "Claude"
+
+ai_usage_summary: |
+  Used Claude (Anthropic, web chat) for architecture discussion, writing and
+  iterating on the feature-extraction/scoring code, and designing the test
+  suite, across two revisions. The rubric weights, disqualifier list, and
+  consistency checks were derived jointly by reading the actual JD and
+  sample candidate data together and iterating — e.g. an initial
+  title_chaser rule incorrectly flagged the strongest-fit candidate in the
+  sample for short average tenure; this was caught by manual inspection of
+  that candidate's career history and fixed by requiring title-escalation
+  evidence, not just tenure length (see test_features.py). The second
+  revision was driven by directly measuring the real 100K-candidate output:
+  94/100 rows were found to share an identical reasoning sentence verbatim,
+  which was fixed by quoting each candidate's own career_history text
+  instead of a fixed template (see CHANGES.md). No candidate data or JD
+  content was sent to any external LLM API as part of rank.py itself — all
+  such use was during development only, via this chat interface.
+
+# ============================================================================
+# Approach summary (optional but recommended)
+# ============================================================================
+methodology_summary: |
+  Feature/rule-based ranker, deliberately NOT embedding-first. Seven weighted
+  components: title/career-history match against JD's "shipped a real
+  system" language (0.30); skill credibility weighted by duration,
+  endorsements, Redrob skill-assessment scores, and cross-domain depth
+  (retrieval+vector-db+eval together, not one keyword) rather than raw
+  keyword presence (0.20); behavioral availability — recency, recruiter
+  response rate, notice-period fit (0.13); experience-band fit (0.12);
+  career trajectory — domain convergence and earned seniority progression
+  over time (0.07); minor semantic similarity as a tie-breaker only (0.05);
+  location fit (0.03); internal-consistency penalty (0.10). A separate
+  multiplicative disqualifier layer encodes the JD's explicit "do NOT want"
+  list (pure-research-only, recent-LangChain-only, consulting-only, etc.).
+  Semantic similarity is intentionally minor because the JD's own dataset
+  contains keyword-stuffed profiles designed to score highly under naive
+  similarity; we verified this pattern in the sample data and built
+  skill-credibility scoring specifically to catch it. Honeypot detection
+  uses computable internal-inconsistency checks (YOE vs. graduation year,
+  claimed-proficiency vs. assessment-score mismatches) since the schema
+  doesn't expose company-founding-year for the spec's literal example.
+  Reasoning text quotes each candidate's own career_history description
+  rather than a fixed template, after measuring 94/100 identical reasoning
+  rows in an earlier version. Runtime ~61s / ~1.84GB RAM at 100K-candidate
+  scale (Linux; ~15s on the original author's local MacBook Air).
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true        # I have read submission_spec.md in full
+  code_is_original_work: true       # My code is my team's original work (using AI as a tool is fine)
+  no_collusion: true                # I have not coordinated my submission with other teams
+  honeypot_check_done: true         # see consistency_flags() in features.py
+  reproduction_tested: true         # tested against the real full 100K pool: ~61s, ~1.84GB RAM
