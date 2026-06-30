@@ -1,0 +1,13 @@
+# Hackathon dataset
+candidates.jsonl
+candidates.jsonl.gz
+sample_candidates.json
+
+# Outputs
+submission.csv
+debug_report.csv
+
+# Python
+__pycache__/
+.pytest_cache/
+*.pyc
