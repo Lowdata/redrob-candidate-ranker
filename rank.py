@@ -69,8 +69,21 @@ def load_candidates_from_json_array(path: Path):
 
 
 def load_jd_text(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    return text
+    suffix = path.suffix.lower()
+
+    if suffix in {".md", ".txt"}:
+        return path.read_text(encoding="utf-8")
+
+    elif suffix == ".docx":
+        from docx import Document
+        doc = Document(path)
+        return "\n".join(
+            p.text for p in doc.paragraphs if p.text.strip()
+        )
+
+    raise ValueError(
+        f"Unsupported JD format: {suffix}. Please upload a .md, .txt, or .docx file."
+    )
 
 
 def build_jd_tokens(jd_text: str) -> set:
