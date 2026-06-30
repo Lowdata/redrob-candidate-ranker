@@ -3,6 +3,7 @@ submission.csv
 sample_submission.csv
 debug_report.csv
 reasoning_audit.txt
+candidates.jsonl
 
 # Python caches
 __pycache__/
