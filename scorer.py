@@ -149,106 +149,166 @@ def build_reasoning(candidate: dict, result: dict) -> str:
     snippet = result.get("shipped_snippet")
     shipped_hits = result.get("shipped_phrase_hits", 0)
 
+    mode_hash = zlib.crc32(f"{seed}|mode".encode('utf-8')) % 100
+    evidence_first = (mode_hash < 30)
+
     bits = []
 
     if title_class == "strong_ml":
-        if company:
-            opts = [
-                f"Current {title} at {company} ({yoe} yrs)",
-                f"{title} with {yoe} years of experience at {company}",
-                f"{yoe}-year {title} currently at {company}",
-                f"Currently serving as {title} at {company}",
-                f"Production-focused {title} ({yoe} yrs)",
-                f"Employed as {title} at {company} ({yoe} yrs)",
-                f"Working as {title} with {company} ({yoe} yrs)",
-                f"Holds {title} role at {company} ({yoe} yrs)",
-                f"Experienced {title} at {company} ({yoe} yrs)",
-                f"Senior-level {title} currently at {company}",
-                f"Brings {yoe} years as {title} at {company}",
-                f"Seasoned {title} from {company}"
-            ]
-        else:
-            opts = [
-                f"Current {title} ({yoe} yrs)",
-                f"{title} with {yoe} years of experience",
-                f"{yoe}-year {title}",
-                f"Currently serving as {title}",
-                f"Production-focused {title} ({yoe} yrs)",
-                f"Holds {title} role ({yoe} yrs)",
-                f"Experienced {title} ({yoe} yrs)",
-                f"Brings {yoe} years as {title}",
-                f"Seasoned {title} with {yoe} yrs",
-                f"Currently working as {title}",
-                f"Working in a {title} position",
-                f"{title} possessing {yoe} years experience"
-            ]
-        bits.append(_choice(seed, "opening", opts))
+        if evidence_first and (snippet or shipped_hits >= 1):
+            if snippet:
+                opts = [
+                    f"Designed and deployed systems showing {snippet}",
+                    f"Experience is anchored by {snippet}",
+                    f"The strongest signal is {snippet}",
+                    f"Track record includes {snippet}",
+                    f"Prior work highlights {snippet}",
+                    f"Production deployments feature {snippet}",
+                    f"Core evidence centers on {snippet}",
+                    f"Demonstrated practical impact with {snippet}",
+                    f"Shipped systems reveal {snippet}",
+                    f"Practical background confirms {snippet}",
+                    f"Notable work includes {snippet}",
+                    f"Engineering history shows {snippet}"
+                ]
+                bits.append(_choice(seed, "career", opts))
+            else:
+                opts = [
+                    "Experience includes shipping live systems",
+                    "Past roles indicate production deployments",
+                    "Shows some production exposure",
+                    "Career history points to live deployments",
+                    "Profile mentions shipped systems",
+                    "Touches on live engineering work",
+                    "Suggests production experience",
+                    "Hints at deployed systems",
+                    "Mentions live deployments briefly",
+                    "History notes some production systems",
+                    "Points to scale deployments implicitly",
+                    "Includes production engineering notes"
+                ]
+                bits.append(_choice(seed, "career", opts))
 
-        if snippet:
-            opts = [
-                f"career progression shows {snippet}",
-                f"previous work demonstrates {snippet}",
-                f"experience is backed by {snippet}",
-                f"production deployments include {snippet}",
-                f"hands-on work shows {snippet}",
-                f"profile consistently demonstrates {snippet}",
-                f"career history backs this up — {snippet}",
-                f"shipped work confirms {snippet}",
-                f"prior roles validate {snippet}",
-                f"resume highlights {snippet}",
-                f"evidence suggests {snippet}",
-                f"practical deployments showcase {snippet}"
-            ]
-            bits.append(_choice(seed, "career", opts))
-        elif shipped_hits >= 1:
-            opts = [
-                "career history mentions shipped-system work, though only thinly",
-                "past roles indicate production deployments but lack detail",
-                "experience includes shipping live systems, though evidence is sparse",
-                "profile suggests hands-on production experience without deep specifics",
-                "shows some production exposure, but concrete details are light",
-                "career mentions live deployments with minimal specifics",
-                "resume touches on shipped systems briefly",
-                "indicates some scale deployments implicitly",
-                "suggests production experience but lacks robust detail",
-                "hints at deployed systems in past roles",
-                "points to production work without providing strong proof",
-                "history notes live engineering work briefly"
-            ]
-            bits.append(_choice(seed, "career", opts))
+            if company:
+                opts = [
+                    f"current role is {title} at {company} ({yoe} yrs)",
+                    f"presently a {title} with {company} ({yoe} yrs)",
+                    f"currently serving as {title} at {company} ({yoe} yrs)"
+                ]
+            else:
+                opts = [
+                    f"current role is {title} ({yoe} yrs)",
+                    f"presently a {title} ({yoe} yrs)",
+                    f"currently serving as {title} ({yoe} yrs)"
+                ]
+            bits.append(_choice(seed, "opening", opts))
         else:
-            opts = [
-                "title fits the JD's core ask, but career history doesn't spell out a shipped system",
-                "while the title is a match, explicit production deployments are missing from the profile",
-                "lacks explicit evidence of shipping real systems despite the relevant title",
-                "profile misses concrete examples of deployed systems",
-                "title aligns well, but hands-on deployment evidence is not spelled out",
-                "no direct mention of live systems despite relevant title",
-                "fails to explicitly detail shipped systems",
-                "missing clear proof of production scale engineering",
-                "lacks specific mentions of live deployments",
-                "title suggests fit, yet concrete deployment evidence is absent",
-                "no robust examples of production work found",
-                "career history lacks explicit deployed system evidence"
-            ]
-            bits.append(_choice(seed, "career", opts))
+            if company:
+                opts = [
+                    f"Current {title} at {company} ({yoe} yrs)",
+                    f"{title} with {yoe} years of experience at {company}",
+                    f"{yoe}-year {title} currently at {company}",
+                    f"Currently serving as {title} at {company}",
+                    f"Production-focused {title} ({yoe} yrs)",
+                    f"Employed as {title} at {company} ({yoe} yrs)",
+                    f"Working as {title} with {company} ({yoe} yrs)",
+                    f"Holds {title} role at {company} ({yoe} yrs)",
+                    f"Experienced {title} at {company} ({yoe} yrs)",
+                    f"Senior-level {title} currently at {company}",
+                    f"Brings {yoe} years as {title} at {company}",
+                    f"Seasoned {title} from {company}"
+                ]
+            else:
+                opts = [
+                    f"Current {title} ({yoe} yrs)",
+                    f"{title} with {yoe} years of experience",
+                    f"{yoe}-year {title}",
+                    f"Currently serving as {title}",
+                    f"Production-focused {title} ({yoe} yrs)",
+                    f"Holds {title} role ({yoe} yrs)",
+                    f"Experienced {title} ({yoe} yrs)",
+                    f"Brings {yoe} years as {title}",
+                    f"Seasoned {title} with {yoe} yrs",
+                    f"Currently working as {title}",
+                    f"Working in a {title} position",
+                    f"{title} possessing {yoe} years experience"
+                ]
+            bits.append(_choice(seed, "opening", opts))
+
+            if snippet:
+                opts = [
+                    f"career progression shows {snippet}",
+                    f"previous work demonstrates {snippet}",
+                    f"experience is backed by {snippet}",
+                    f"production deployments include {snippet}",
+                    f"hands-on work shows {snippet}",
+                    f"profile consistently demonstrates {snippet}",
+                    f"live systems experience highlights {snippet}",
+                    f"shipped work confirms {snippet}",
+                    f"prior roles validate {snippet}",
+                    f"resume highlights {snippet}",
+                    f"evidence suggests {snippet}",
+                    f"practical deployments showcase {snippet}"
+                ]
+                bits.append(_choice(seed, "career", opts))
+            elif shipped_hits >= 1:
+                opts = [
+                    "mentions production deployments sparsely",
+                    "past roles indicate production deployments but lack detail",
+                    "experience includes shipping live systems, though evidence is sparse",
+                    "profile suggests hands-on production experience without deep specifics",
+                    "shows some production exposure, but concrete details are light",
+                    "career mentions live deployments with minimal specifics",
+                    "resume touches on shipped systems briefly",
+                    "indicates some scale deployments implicitly",
+                    "suggests production experience but lacks robust detail",
+                    "hints at deployed systems in past roles",
+                    "points to production work without providing strong proof",
+                    "history notes live engineering work briefly"
+                ]
+                bits.append(_choice(seed, "career", opts))
+            else:
+                opts = [
+                    "title fits the JD's core ask, but career history doesn't spell out a shipped system",
+                    "while the title is a match, explicit production deployments are missing from the profile",
+                    "lacks explicit evidence of shipping real systems despite the relevant title",
+                    "profile misses concrete examples of deployed systems",
+                    "title aligns well, but hands-on deployment evidence is not spelled out",
+                    "no direct mention of live systems despite relevant title",
+                    "fails to explicitly detail shipped systems",
+                    "missing clear proof of production scale engineering",
+                    "lacks specific mentions of live deployments",
+                    "title suggests fit, yet concrete deployment evidence is absent",
+                    "no robust examples of production work found",
+                    "career history lacks explicit deployed system evidence"
+                ]
+                bits.append(_choice(seed, "career", opts))
 
         if strong_families:
             fam_str = ", ".join(strong_families).replace("_", " ")
-            opts = [
-                f"credible depth in {fam_str}",
-                f"demonstrated expertise across {fam_str}",
-                f"corroborated skills include {fam_str}",
-                f"solid foundation in {fam_str}",
-                f"strong technical evidence for {fam_str}",
-                f"proven capability in {fam_str}",
-                f"verifiable experience spanning {fam_str}",
-                f"shows robust understanding of {fam_str}",
-                f"evident strengths in {fam_str}",
-                f"established competence in {fam_str}",
-                f"clearly skilled in {fam_str}",
-                f"possesses strong background in {fam_str}"
-            ]
+            if evidence_first:
+                opts = [
+                    f"with credible depth in {fam_str}",
+                    f"featuring expertise across {fam_str}",
+                    f"demonstrating skills in {fam_str}",
+                    f"along with a solid foundation in {fam_str}",
+                    f"and strong technical evidence for {fam_str}"
+                ]
+            else:
+                opts = [
+                    f"credible depth in {fam_str}",
+                    f"demonstrated expertise across {fam_str}",
+                    f"corroborated skills include {fam_str}",
+                    f"solid foundation in {fam_str}",
+                    f"strong technical evidence for {fam_str}",
+                    f"proven capability in {fam_str}",
+                    f"verifiable experience spanning {fam_str}",
+                    f"shows robust understanding of {fam_str}",
+                    f"evident strengths in {fam_str}",
+                    f"established competence in {fam_str}",
+                    f"clearly skilled in {fam_str}",
+                    f"possesses strong background in {fam_str}"
+                ]
             bits.append(_choice(seed, "skill", opts))
 
     elif title_class == "adjacent_eng":
