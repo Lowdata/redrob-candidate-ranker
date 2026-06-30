@@ -1,79 +1,103 @@
-import json
-import re
-from pathlib import Path
-from collections import Counter
+import subprocess
+import time
+import csv
 import sys
-
-sys.path.insert(0, str(Path(__file__).parent))
-import scorer
-import rank as rank_module
+from collections import Counter
+from pathlib import Path
 
 DATA_DIR = Path(__file__).parent
-FULL_PATH_GZ = DATA_DIR / "candidates.jsonl.gz"
 FULL_PATH = DATA_DIR / "candidates.jsonl"
-SAMPLE_PATH = DATA_DIR / "sample_candidates.json"
 JD_PATH = DATA_DIR / "job_description.md"
+SUB_PATH = DATA_DIR / "submission.csv"
 
-def get_candidates_stream():
-    if FULL_PATH_GZ.exists():
-        return rank_module.load_candidates(FULL_PATH_GZ)
-    elif FULL_PATH.exists():
-        return rank_module.load_candidates(FULL_PATH)
-    else:
-        return rank_module.load_candidates_from_json_array(SAMPLE_PATH)
-
-jd_tokens = rank_module.build_jd_tokens(rank_module.load_jd_text(JD_PATH))
-stream = get_candidates_stream()
-
-scored = []
-for c in stream:
-    try:
-        r = scorer.score_candidate(c, jd_tokens)
-        scored.append((c, r))
-    except Exception:
-        continue
-        
-top_100 = rank_module._ranked_top(scored, 100)
-
-reasonings = []
-for rank, (c, r, score) in enumerate(top_100):
-    reasonings.append(scorer.build_reasoning(c, r))
-
-unique_texts = set(reasonings)
-repeated = 100 - len(unique_texts)
-
-openings = [" ".join(r.split()[:4]) for r in reasonings]
-most_common_opening = Counter(openings).most_common(1)[0]
-largest_template_pct = most_common_opening[1]
-
-def get_phrases(text, n):
-    words = text.split()
-    return [" ".join(words[i:i+n]) for i in range(len(words)-n+1)]
-
-all_phrases = []
-for r in reasonings:
-    all_phrases.extend(get_phrases(r.lower(), 4))
+def run_audit():
+    print("Running rank.py to gather metrics...")
+    start_time = time.time()
     
-most_common_phrase = Counter(all_phrases).most_common(1)[0]
+    # Run rank.py. Note: For accurate peak memory on macOS we use /usr/bin/time -l
+    cmd = [
+        "/usr/bin/time", "-l", "python3", "rank.py",
+        "--candidates", str(FULL_PATH),
+        "--jd", str(JD_PATH),
+        "--out", str(SUB_PATH)
+    ]
+    
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        print("Error running rank.py:")
+        print(e.stderr)
+        sys.exit(1)
+        
+    runtime = time.time() - start_time
+    
+    # Parse Peak Memory
+    peak_mem_mb = 0.0
+    for line in res.stderr.splitlines():
+        if "maximum resident set size" in line:
+            bytes_val = int(line.strip().split()[0])
+            peak_mem_mb = bytes_val / (1024 * 1024)
+            break
 
-avg_length = sum(len(r) for r in reasonings) // len(reasonings)
+    print("Gathering reasoning text for diversity metrics...")
+    reasonings = []
+    with open(SUB_PATH, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if "reasoning" in row:
+                reasonings.append(row["reasoning"])
+            elif "Reasoning" in row:
+                reasonings.append(row["Reasoning"])
+                
+    if not reasonings:
+        print("Could not find reasoning column in submission.csv")
+        sys.exit(1)
+        
+    unique_texts = set(reasonings)
+    
+    def get_phrases(text, n):
+        words = text.split()
+        return [" ".join(words[i:i+n]) for i in range(max(0, len(words)-n+1))]
 
-audit = f"""Reasoning Audit
+    all_phrases = []
+    for r in reasonings:
+        all_phrases.extend(get_phrases(r.lower(), 4))
+        
+    # Exclude phrases that are just domain tags from the profile to find true structural repetition
+    filtered_phrases = [
+        p for p in all_phrases 
+        if "embeddings" not in p and "retrieval" not in p and "vector db" not in p
+    ]
+            
+    if filtered_phrases:
+        most_common_phrase = Counter(filtered_phrases).most_common(1)[0]
+    else:
+        most_common_phrase = ("None", 0)
+        
+    print("Verifying determinism and hallucinations via test suite...")
+    test_res = subprocess.run(["python3", "test_reasoning.py"], capture_output=True, text=True)
+    if test_res.returncode == 0:
+        det_status = "PASS"
+        hallucination_count = 0
+        validation_status = "PASS"
+    else:
+        det_status = "FAIL"
+        hallucination_count = "Unknown (Test Failed)"
+        validation_status = "FAIL"
+        print(test_res.stdout)
+        print(test_res.stderr)
 
-Composable Blocks Configured: 5 blocks with up to 12 variants each
-Estimated possible combinations: 12^5 = 248,832
+    print("\n" + "="*40)
+    print("          FINAL REASONING AUDIT")
+    print("="*40)
+    print(f"Runtime:               {runtime:.2f} s")
+    print(f"Peak Memory:           {peak_mem_mb:.2f} MB")
+    print(f"Template Diversity:    {len(unique_texts)} unique reasonings / {len(reasonings)}")
+    print(f"Phrase Repetition:     Largest non-domain phrase '{most_common_phrase[0]}' appeared {most_common_phrase[1]} times")
+    print(f"Hallucination Count:   {hallucination_count}")
+    print(f"Determinism:           {det_status}")
+    print(f"Validation Status:     {validation_status}")
+    print("="*40 + "\n")
 
-Top 100 Candidates Statistics:
-- Unique reasonings: {len(unique_texts)}/100
-- Repeated reasoning texts: {repeated}
-- Largest pseudo-template (same opening 4 words): {largest_template_pct}%
-- Largest repeated phrase (4 words): "{most_common_phrase[0]}" at {most_common_phrase[1]}%
-- Average length: {avg_length} chars
-- Hallucinations: 0 (Enforced by CI)
-- Deterministic: PASS
-- Ranking identical: PASS
-"""
-with open("/Users/ayushpahuja/Downloads/redrob/reasoning_audit.txt", "w") as f:
-    f.write(audit)
-
-print(audit)
+if __name__ == "__main__":
+    run_audit()

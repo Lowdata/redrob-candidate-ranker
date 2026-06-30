@@ -1,13 +1,19 @@
-# Hackathon dataset
-candidates.jsonl
-candidates.jsonl.gz
-sample_candidates.json
-
-# Outputs
+# Ignore submission outputs
 submission.csv
+sample_submission.csv
 debug_report.csv
+reasoning_audit.txt
 
-# Python
+# Python caches
 __pycache__/
+*.py[cod]
+*$py.class
 .pytest_cache/
-*.pyc
+
+# Mac OS
+.DS_Store
+
+# Virtual environments
+venv/
+.venv/
+env/
