@@ -1,31 +1,108 @@
-participant:
-  name: Ayush Pahuja
-  email: ayush.pahuja090@gmail.com
+# Redrob Hackathon — Submission Metadata
+
+# ============================================================================
+# Team identity
+# ============================================================================
+
+team_name: "Apex"
+
+primary_contact:
+  name: "Ayush Pahuja"
+  email: "ayush.pahuja090@gmail.com"
   phone: "+918503022066"
 
-team:
-  name: Apex
-  size: 1
+team_members:
+  - name: "Ayush Pahuja"
+    email: "ayush.pahuja090@gmail.com"
+    role: "ML Engineer / Backend Engineer"
 
-repository:
-  github: https://github.com/ayushpahuja/redrob-candidate-ranker
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
 
-sandbox:
-  provider: Hugging Face Spaces
-  url: https://huggingface.co/spaces/ayushpahuja/redrob-candidate-ranker
+github_repo: "https://github.com/Lowdata/redrob-candidate-ranker"
 
-runtime:
-  language: Python
-  python: "3.14"
+sandbox_link: "https://huggingface.co/spaces/ayushpahuja/redrob-candidate-ranker"
+
+reproduce_command: >
+  python3 rank.py
+  --candidates ./candidates.jsonl
+  --jd ./job_description.md
+  --out ./submission.csv
+
+# ============================================================================
+# Compute environment
+# ============================================================================
 
 compute:
-  cpu_only: true
-  gpu: false
+  platform: "Apple MacBook Air M4 (2025)"
+  cpu: "Apple M4 (10-core CPU: 4 Performance + 6 Efficiency)"
+  cpu_cores: 10
+  ram_gb: 16
+  python_version: "3.14.6"
+  os: "macOS"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: false
+  pre_computation_time_minutes: 0
 
-ai_tools:
-  - ChatGPT
-  - Claude
-  - Gemini
+  benchmark:
+    runtime_seconds: 21.6
+    peak_memory_gb: 1.90
 
-author:
-  solo_developer: true
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+
+ai_tools_used:
+  - "ChatGPT (Free)"
+  - "Claude (Free)"
+
+ai_usage_summary: |
+  ChatGPT and Claude were used during development as engineering assistants for
+  brainstorming architecture, reviewing feature engineering, improving reasoning
+  generation, writing tests, identifying edge cases, and reviewing implementation
+  decisions.
+
+  All ranking logic, feature weighting, heuristics, calibration, debugging,
+  validation, testing, profiling, and final engineering decisions were performed
+  manually and iteratively by the author.
+
+  No hosted LLM APIs are used anywhere during execution of rank.py.
+  The ranking pipeline is fully deterministic, CPU-only, offline, and performs
+  no external network requests during inference.
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+
+methodology_summary: |
+  Deterministic feature-engineered candidate ranking system designed specifically
+  for the released Redrob JD.
+
+  Candidate scoring combines multiple independently weighted components including
+  title alignment, production retrieval/ranking experience, skill credibility,
+  behavioral hiring signals, experience fit, career trajectory, location,
+  consistency validation, and explicit JD disqualifiers.
+
+  Rather than relying on embedding similarity alone, the ranker validates evidence
+  across career history, skills, production achievements, recruiter signals,
+  assessments, and behavioral consistency.
+
+  Candidate explanations are generated deterministically from actual profile
+  evidence using multiple evidence-driven sentence structures to maximize factual
+  specificity while avoiding repetitive template output.
+
+  Runtime on the complete 100,000 candidate dataset:
+  approximately 21 seconds wall-clock using under 2 GB RAM on an Apple M4 CPU.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
